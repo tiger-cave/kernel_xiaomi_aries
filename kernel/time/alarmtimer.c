@@ -159,6 +159,8 @@ static int alarmtimer_rtc_add_device(struct device *dev,
 
 static inline void alarmtimer_rtc_timer_init(void)
 {
+	mutex_init(&power_on_alarm_lock);
+
 	rtc_timer_init(&rtctimer, NULL, NULL);
 }
 
@@ -184,6 +186,7 @@ struct rtc_device *alarmtimer_get_rtcdev(void)
 static inline int alarmtimer_rtc_interface_setup(void) { return 0; }
 static inline void alarmtimer_rtc_interface_remove(void) { }
 static inline void alarmtimer_rtc_timer_init(void) { }
+void set_power_on_alarm(long secs, bool enable) { }
 #endif
 
 /**
@@ -516,26 +519,18 @@ static enum alarmtimer_type clock2alarm(clockid_t clockid)
 static enum alarmtimer_restart alarm_handle_timer(struct alarm *alarm,
 							ktime_t now)
 {
-	unsigned long flags;
 	struct k_itimer *ptr = container_of(alarm, struct k_itimer,
 						it.alarm.alarmtimer);
-	enum alarmtimer_restart result = ALARMTIMER_NORESTART;
-
-	spin_lock_irqsave(&ptr->it_lock, flags);
-	if ((ptr->it_sigev_notify & ~SIGEV_THREAD_ID) != SIGEV_NONE) {
-		if (posix_timer_event(ptr, 0) != 0)
-			ptr->it_overrun++;
-	}
+	if (posix_timer_event(ptr, 0) != 0)
+		ptr->it_overrun++;
 
 	/* Re-add periodic timers */
 	if (ptr->it.alarm.interval.tv64) {
 		ptr->it_overrun += alarm_forward(alarm, now,
 						ptr->it.alarm.interval);
-		result = ALARMTIMER_RESTART;
+		return ALARMTIMER_RESTART;
 	}
-	spin_unlock_irqrestore(&ptr->it_lock, flags);
-
-	return result;
+	return ALARMTIMER_NORESTART;
 }
 
 /**
@@ -550,7 +545,7 @@ static int alarm_clock_getres(const clockid_t which_clock, struct timespec *tp)
 	clockid_t baseid = alarm_bases[clock2alarm(which_clock)].base_clockid;
 
 	if (!alarmtimer_get_rtcdev())
-		return -EINVAL;
+		return -ENOTSUPP;
 
 	return hrtimer_get_res(baseid, tp);
 }
@@ -567,7 +562,7 @@ static int alarm_clock_get(clockid_t which_clock, struct timespec *tp)
 	struct alarm_base *base = &alarm_bases[clock2alarm(which_clock)];
 
 	if (!alarmtimer_get_rtcdev())
-		return -EINVAL;
+		return -ENOTSUPP;
 
 	*tp = ktime_to_timespec(base->gettime());
 	return 0;
@@ -601,22 +596,18 @@ static int alarm_timer_create(struct k_itimer *new_timer)
  * @new_timer: k_itimer pointer
  * @cur_setting: itimerspec data to fill
  *
- * Copies out the current itimerspec data
+ * Copies the itimerspec data out from the k_itimer
  */
 static void alarm_timer_get(struct k_itimer *timr,
 				struct itimerspec *cur_setting)
 {
-	ktime_t relative_expiry_time =
-		alarm_expires_remaining(&(timr->it.alarm.alarmtimer));
+	memset(cur_setting, 0, sizeof(struct itimerspec));
 
-	if (ktime_to_ns(relative_expiry_time) > 0) {
-		cur_setting->it_value = ktime_to_timespec(relative_expiry_time);
-	} else {
-		cur_setting->it_value.tv_sec = 0;
-		cur_setting->it_value.tv_nsec = 0;
-	}
-
-	cur_setting->it_interval = ktime_to_timespec(timr->it.alarm.interval);
+	cur_setting->it_interval =
+			ktime_to_timespec(timr->it.alarm.interval);
+	cur_setting->it_value =
+		ktime_to_timespec(timr->it.alarm.alarmtimer.node.expires);
+	return;
 }
 
 /**
@@ -649,13 +640,8 @@ static int alarm_timer_set(struct k_itimer *timr, int flags,
 				struct itimerspec *new_setting,
 				struct itimerspec *old_setting)
 {
-	ktime_t exp;
-
 	if (!rtcdev)
 		return -ENOTSUPP;
-
-	if (flags & ~TIMER_ABSTIME)
-		return -EINVAL;
 
 	if (old_setting)
 		alarm_timer_get(timr, old_setting);
@@ -666,16 +652,8 @@ static int alarm_timer_set(struct k_itimer *timr, int flags,
 
 	/* start the timer */
 	timr->it.alarm.interval = timespec_to_ktime(new_setting->it_interval);
-	exp = timespec_to_ktime(new_setting->it_value);
-	/* Convert (if necessary) to absolute time */
-	if (flags != TIMER_ABSTIME) {
-		ktime_t now;
-
-		now = alarm_bases[timr->it.alarm.alarmtimer.type].gettime();
-		exp = ktime_add(now, exp);
-	}
-
-	alarm_start(&timr->it.alarm.alarmtimer, exp);
+	alarm_start(&timr->it.alarm.alarmtimer,
+			timespec_to_ktime(new_setting->it_value));
 	return 0;
 }
 
@@ -806,9 +784,6 @@ static int alarm_timer_nsleep(const clockid_t which_clock, int flags,
 
 	if (!alarmtimer_get_rtcdev())
 		return -ENOTSUPP;
-
-	if (flags & ~TIMER_ABSTIME)
-		return -EINVAL;
 
 	if (!capable(CAP_WAKE_ALARM))
 		return -EPERM;
