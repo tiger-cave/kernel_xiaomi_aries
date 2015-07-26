@@ -408,17 +408,6 @@ static inline void unlock_system_sleep(void) {}
 
 #endif /* !CONFIG_PM_SLEEP */
 
-#ifdef CONFIG_PM_AUTOSLEEP
-
-/* kernel/power/autosleep.c */
-void queue_up_suspend_work(void);
-
-#else /* !CONFIG_PM_AUTOSLEEP */
-
-static inline void queue_up_suspend_work(void) {}
-
-#endif /* !CONFIG_PM_AUTOSLEEP */
-
 #ifdef CONFIG_ARCH_SAVE_PAGE_KEYS
 /*
  * The ARCH_SAVE_PAGE_KEYS functions can be used by an architecture
