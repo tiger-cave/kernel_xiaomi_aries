@@ -348,7 +348,7 @@ static void quirk_io(struct pci_dev *dev, int pos, unsigned size,
 	/* Convert from PCI bus to resource space */
 	bus_region.start = region;
 	bus_region.end = region + size - 1;
-	pcibios_bus_to_resource(dev, res, &bus_region);
+	pcibios_bus_to_resource(dev->bus, res, &bus_region);
 
 	dev_info(&dev->dev, FW_BUG "%s quirk: reg 0x%x: %pR\n",
 		 name, PCI_BASE_ADDRESS_0 + (pos << 2), res);
@@ -393,7 +393,7 @@ static void __devinit quirk_io_region(struct pci_dev *dev, unsigned region,
 		/* Convert from PCI bus to resource space.  */
 		bus_region.start = res->start;
 		bus_region.end = res->end;
-		pcibios_bus_to_resource(dev, res, &bus_region);
+		pcibios_bus_to_resource(dev->bus, res, &bus_region);
 
 		if (pci_claim_resource(dev, nr) == 0)
 			dev_info(&dev->dev, "quirk: %pR claimed by %s\n",
