@@ -263,14 +263,12 @@ static char write_ce_on[33] = {
 };				/* DTYPE_GEN_LWRITE */
 #endif
 #endif
-static char set_tear_on[2] = { 0x35, 0x00 };	/*DTYPE_DCS_WRITE1 */
 
 /*Cmd for GRAM Access*/
 static char set_column_address[5] = { 0x2A, 0x00, 0x00, 0x02, 0xCF };	/* DTYPE_DCS_LWRITE */
 static char set_page1_address[5] = { 0x2B, 0x00, 0x00, 0x04, 0xFF };	/* DTYPE_DCS_LWRITE */
 
 /*[4] enter sleep mode*/
-static char set_tear_off[2] = { 0x34, 0x00 };	/*DTYPE_DCS_WRITE */
 static char enter_sleep_mode[2] = { 0x10, 0x00 };	/* DTYPE_DCS_WRITE */
 
 /*[5] set display on*/
@@ -286,11 +284,8 @@ static char set_display_off[2] = { 0x28, 0x00 };	/* DTYPE_DCS_WRITE */
 /*[8] exit deep standby*/
 
 /*[9] enter video Mode*/
-static char set_interface_video[2] = { 0xB3, 0x40 };	/*DTYPE_GEN_WRITE2 */
 
 /*[10] enter command mode*/
-static char set_interface_cmd1[2] = { 0xB3, 0xA0 };	/*DTYPE_GEN_WRITE2 */
-static char set_interface_cmd2[2] = { 0xB3, 0x00 };	/*DTYPE_GEN_WRITE2 */
 
 static struct dsi_cmd_desc hitachi_hitachi_on_cmds[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, HITACHI_SLEEP_OFF_DELAY,
@@ -419,39 +414,6 @@ static struct dsi_cmd_desc hitachi_sharp_off_cmds[] = {
 	,
 };
 
-static struct dsi_cmd_desc hitachi_videomode_on_cmds[] = {
-	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
-	 sizeof(mcap_start), mcap_start}
-	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
-	 sizeof(set_interface_video), set_interface_video}
-	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
-	 sizeof(mcap_end), mcap_end}
-	,
-	{DTYPE_DCS_WRITE1, 1, 0, 0, HITACHI_NO_DELAY,
-	 sizeof(set_tear_on), set_tear_on}
-	,
-};
-
-static struct dsi_cmd_desc hitachi_videomode_off_cmds[] = {
-	{DTYPE_DCS_WRITE, 1, 0, 0, HITACHI_NO_DELAY,
-	 sizeof(set_tear_off), set_tear_off}
-	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
-	 sizeof(mcap_start), mcap_start}
-	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_CMD_DELAY_20,
-	 sizeof(set_interface_cmd1), set_interface_cmd1}
-	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
-	 sizeof(set_interface_cmd2), set_interface_cmd2}
-	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
-	 sizeof(mcap_end), mcap_end}
-	,
-};
-
 static char manufacture_id[2] = { 0x04, 0x00 };	/* DTYPE_DCS_READ */
 
 static struct dsi_cmd_desc hitachi_manufacture_id_cmd = {
@@ -480,7 +442,6 @@ static uint32 mipi_hitachi_manufacture_id(struct msm_fb_data_type *mfd)
 }
 
 extern int mipanel_id(void);
-extern void mipanel_set_id(int id);
 
 static int mipi_hitachi_lcd_on(struct platform_device *pdev)
 {
@@ -506,10 +467,7 @@ static int mipi_hitachi_lcd_on(struct platform_device *pdev)
 	backlight_brightness_set(0);
 #endif
 
-	if (mipi->mode == DSI_VIDEO_MODE) {
-		cmdreq.cmds = hitachi_videomode_on_cmds;
-		cmdreq.cmds_cnt = ARRAY_SIZE(hitachi_videomode_on_cmds);
-	} else if (mipanel_id()) {
+	if (mipanel_id()) {
 		cmdreq.cmds = hitachi_hitachi_on_cmds;
 		cmdreq.cmds_cnt = ARRAY_SIZE(hitachi_hitachi_on_cmds);
 	} else {
@@ -540,10 +498,7 @@ static int mipi_hitachi_lcd_off(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	if (mipi->mode == DSI_VIDEO_MODE) {
-		cmdreq.cmds = hitachi_videomode_off_cmds;
-		cmdreq.cmds_cnt = ARRAY_SIZE(hitachi_videomode_off_cmds);
-	} else if (mipanel_id()) {
+	if (mipanel_id()) {
 		cmdreq.cmds = hitachi_hitachi_off_cmds;
 		cmdreq.cmds_cnt = ARRAY_SIZE(hitachi_hitachi_off_cmds);
 	} else {
