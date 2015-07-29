@@ -158,7 +158,7 @@ static int mipi_dsi_mipanel_power(int on)
 		gpio_direction_output(reset_gpio, 1);
 		mdelay(3);
 
-		mi_panel_id = gpio_get_value(lcd_id_gpio);
+		mipanel_set_id(gpio_get_value(lcd_id_gpio));
 	} else {
 		gpio_direction_output(reset_gpio, 0);
 
