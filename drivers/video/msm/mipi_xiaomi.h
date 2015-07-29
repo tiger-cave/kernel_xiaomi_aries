@@ -14,6 +14,5 @@
 #define MIPI_XIAOMI_H
 
 int mipi_xiaomi_device_register(struct msm_panel_info *pinfo,
-					u32 channel, u32 panel);
-
-#endif  /* MIPI_XIAOMI_H */
+				u32 channel, u32 panel);
+#endif /* MIPI_XIAOMI_H */
