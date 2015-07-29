@@ -13,8 +13,6 @@
 #ifndef MIPI_XIAOMI_H
 #define MIPI_XIAOMI_H
 
-#define RENESAS_FWVGA_TWO_LANE
-
 int mipi_xiaomi_device_register(struct msm_panel_info *pinfo,
 					u32 channel, u32 panel);
 
