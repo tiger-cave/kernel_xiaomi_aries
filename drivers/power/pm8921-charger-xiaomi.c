@@ -2920,11 +2920,7 @@ static void update_heartbeat(struct work_struct *work)
 						     (chip->update_time)));
 }
 #define VDD_LOOP_ACTIVE_BIT	BIT(3)
-#if defined(CONFIG_MACH_MITWO) || defined(CONFIG_MACH_APQ8064_MTP)
 #define VDD_MAX_INCREASE_MV	40 /* Based on the test */
-#else
-#define VDD_MAX_INCREASE_MV	30 /* Based on the test */
-#endif
 static int vdd_max_increase_mv = VDD_MAX_INCREASE_MV;
 module_param(vdd_max_increase_mv, int, 0644);
 

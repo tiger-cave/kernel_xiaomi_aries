@@ -239,12 +239,7 @@ int lm3554_flashlight_control(int mode)
 
 		case MSM_CAMERA_LED_HIGH:
 		/* 900mA total, Flash mode */
-#if defined(CONFIG_MACH_MITWO)
 		err = lm3554_write_reg(pdata, LM3554_FLASH_BRIGHTNESS, 0xd3);
-#else
-		/* MI2A */
-		err = lm3554_write_reg(pdata, LM3554_FLASH_BRIGHTNESS, 0xdb);
-#endif
 		break;
 
 		default:
