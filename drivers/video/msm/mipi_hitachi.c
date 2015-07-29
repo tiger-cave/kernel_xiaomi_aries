@@ -12,7 +12,7 @@
 
 #include "msm_fb.h"
 #include "mipi_dsi.h"
-#include "mipi_xiaomi.h"
+#include "mipi_hitachi.h"
 #include <mach/socinfo.h>
 #if defined(CONFIG_LEDS_LM3530_ARIES)
 #include <linux/led-lm3530-aries.h>
@@ -21,18 +21,18 @@
 #define DISP_P1
 #define CE_HITACHI_MODE3
 
-#define RENESAS_NO_DELAY 0	/* 0 */
-#define RENESAS_CMD_DELAY 50	/* 50 default */
-#define RENESAS_CMD_DELAY_10 10	/* 10 */
-#define RENESAS_CMD_DELAY_20 20	/* 20 */
-#define RENESAS_CMD_DELAY_60 20	/* 60 */
-#define RENESAS_SLEEP_OFF_DELAY 120
-static struct msm_panel_common_pdata *mipi_renesas_pdata;
+#define HITACHI_NO_DELAY 0	/* 0 */
+#define HITACHI_CMD_DELAY 50	/* 50 default */
+#define HITACHI_CMD_DELAY_10 10	/* 10 */
+#define HITACHI_CMD_DELAY_20 20	/* 20 */
+#define HITACHI_CMD_DELAY_60 20	/* 60 */
+#define HITACHI_SLEEP_OFF_DELAY 120
+static struct msm_panel_common_pdata *mipi_hitachi_pdata;
 
-static struct dsi_buf renesas_tx_buf;
-static struct dsi_buf renesas_rx_buf;
+static struct dsi_buf hitachi_tx_buf;
+static struct dsi_buf hitachi_rx_buf;
 
-static int mipi_renesas_lcd_init(void);
+static int mipi_hitachi_lcd_init(void);
 
 /*[3] exit sleep mode*/
 static char exit_sleep_mode[2] = { 0x11, 0x00 };	/*DTYPE_DCS_WRITE */
@@ -292,188 +292,188 @@ static char set_interface_video[2] = { 0xB3, 0x40 };	/*DTYPE_GEN_WRITE2 */
 static char set_interface_cmd1[2] = { 0xB3, 0xA0 };	/*DTYPE_GEN_WRITE2 */
 static char set_interface_cmd2[2] = { 0xB3, 0x00 };	/*DTYPE_GEN_WRITE2 */
 
-static struct dsi_cmd_desc renesas_hitachi_on_cmds[] = {
-	{DTYPE_DCS_WRITE, 1, 0, 0, RENESAS_SLEEP_OFF_DELAY,
+static struct dsi_cmd_desc hitachi_hitachi_on_cmds[] = {
+	{DTYPE_DCS_WRITE, 1, 0, 0, HITACHI_SLEEP_OFF_DELAY,
 	 sizeof(exit_sleep_mode), exit_sleep_mode}
 	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(mcap_start), mcap_start}
 	,
 #if defined(CONFIG_FB_MSM_MIPI_DSI_CE)
-	{DTYPE_GEN_LWRITE, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_LWRITE, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(write_ce_on_jdi), write_ce_on_jdi}
 	,
 #else
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(write_ce_off), write_ce_off}
 	,
 #endif
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(mcap_end), mcap_end}
 	,
-	{DTYPE_DCS_LWRITE, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_DCS_LWRITE, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(write_display_brightness), write_display_brightness}
 	,
-	{DTYPE_DCS_WRITE1, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_DCS_WRITE1, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(write_control_display), write_control_display}
 	,
-	{DTYPE_DCS_WRITE1, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_DCS_WRITE1, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(write_cabc), write_cabc}
 	,
-	{DTYPE_DCS_LWRITE, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_DCS_LWRITE, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(set_column_address), set_column_address}
 	,
-	{DTYPE_DCS_LWRITE, 1, 0, 0, RENESAS_CMD_DELAY_20,
+	{DTYPE_DCS_LWRITE, 1, 0, 0, HITACHI_CMD_DELAY_20,
 	 sizeof(set_page1_address), set_page1_address}
 	,
-	{DTYPE_DCS_WRITE1, 1, 0, 0, RENESAS_CMD_DELAY_20,
+	{DTYPE_DCS_WRITE1, 1, 0, 0, HITACHI_CMD_DELAY_20,
 	 sizeof(set_address_mode), set_address_mode}
 	,
-	{DTYPE_DCS_WRITE1, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_DCS_WRITE1, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(set_pixel_format), set_pixel_format}
 	,
-	{DTYPE_DCS_WRITE, 1, 0, 0, RENESAS_CMD_DELAY_20,
+	{DTYPE_DCS_WRITE, 1, 0, 0, HITACHI_CMD_DELAY_20,
 	 sizeof(set_display_on), set_display_on}
 	,
 };
 
-static struct dsi_cmd_desc renesas_hitachi_off_cmds[] = {
-	{DTYPE_DCS_WRITE, 1, 0, 0, RENESAS_CMD_DELAY_20,
+static struct dsi_cmd_desc hitachi_hitachi_off_cmds[] = {
+	{DTYPE_DCS_WRITE, 1, 0, 0, HITACHI_CMD_DELAY_20,
 	 sizeof(set_display_off), set_display_off}
 	,
-	{DTYPE_DCS_WRITE, 1, 0, 0, RENESAS_CMD_DELAY_60,
+	{DTYPE_DCS_WRITE, 1, 0, 0, HITACHI_CMD_DELAY_60,
 	 sizeof(enter_sleep_mode), enter_sleep_mode}
 	,
 };
 
-static struct dsi_cmd_desc renesas_sharp_on_cmds[] = {
-	{DTYPE_DCS_WRITE, 1, 0, 0, RENESAS_SLEEP_OFF_DELAY,
+static struct dsi_cmd_desc hitachi_sharp_on_cmds[] = {
+	{DTYPE_DCS_WRITE, 1, 0, 0, HITACHI_SLEEP_OFF_DELAY,
 	 sizeof(exit_sleep_mode), exit_sleep_mode}
 	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(mcap_start), mcap_start}
 	,
 #if defined(DISP_P1)
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(nvm_noload), nvm_noload}
 	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(disp_setting), disp_setting}
 	,
 #endif
 #if defined(CONFIG_FB_MSM_MIPI_DSI_CABC)
-	{DTYPE_GEN_LWRITE, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_LWRITE, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(test), test}
 	,
-	{DTYPE_GEN_LWRITE, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_LWRITE, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(cabc_movie_still), cabc_movie_still}
 	,
-	{DTYPE_GEN_LWRITE, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_LWRITE, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(cabc_user_inf), cabc_user_inf}
 	,
 #endif
 #if defined(CONFIG_FB_MSM_MIPI_DSI_CE)
-	{DTYPE_GEN_LWRITE, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_LWRITE, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(write_ce_on), write_ce_on}
 	,
 #else
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(write_ce_off), write_ce_off}
 	,
 #endif
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(mcap_end), mcap_end}
 	,
-	{DTYPE_DCS_LWRITE, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_DCS_LWRITE, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(write_display_brightness), write_display_brightness}
 	,
-	{DTYPE_DCS_WRITE1, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_DCS_WRITE1, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(write_control_display), write_control_display}
 	,
-	{DTYPE_DCS_WRITE1, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_DCS_WRITE1, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(write_cabc), write_cabc}
 	,
-	{DTYPE_DCS_LWRITE, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_DCS_LWRITE, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(set_column_address), set_column_address}
 	,
-	{DTYPE_DCS_LWRITE, 1, 0, 0, RENESAS_CMD_DELAY_20,
+	{DTYPE_DCS_LWRITE, 1, 0, 0, HITACHI_CMD_DELAY_20,
 	 sizeof(set_page1_address), set_page1_address}
 	,
-	{DTYPE_DCS_WRITE1, 1, 0, 0, RENESAS_CMD_DELAY_20,
+	{DTYPE_DCS_WRITE1, 1, 0, 0, HITACHI_CMD_DELAY_20,
 	 sizeof(set_address_mode), set_address_mode}
 	,
-	{DTYPE_DCS_WRITE1, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_DCS_WRITE1, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(set_pixel_format), set_pixel_format}
 	,
-	{DTYPE_DCS_WRITE, 1, 0, 0, RENESAS_CMD_DELAY_20,
+	{DTYPE_DCS_WRITE, 1, 0, 0, HITACHI_CMD_DELAY_20,
 	 sizeof(set_display_on), set_display_on}
 	,
 };
 
-static struct dsi_cmd_desc renesas_sharp_off_cmds[] = {
-	{DTYPE_DCS_WRITE, 1, 0, 0, RENESAS_CMD_DELAY_20,
+static struct dsi_cmd_desc hitachi_sharp_off_cmds[] = {
+	{DTYPE_DCS_WRITE, 1, 0, 0, HITACHI_CMD_DELAY_20,
 	 sizeof(set_display_off), set_display_off}
 	,
-	{DTYPE_DCS_WRITE, 1, 0, 0, RENESAS_CMD_DELAY_60,
+	{DTYPE_DCS_WRITE, 1, 0, 0, HITACHI_CMD_DELAY_60,
 	 sizeof(enter_sleep_mode), enter_sleep_mode}
 	,
 };
 
-static struct dsi_cmd_desc renesas_videomode_on_cmds[] = {
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+static struct dsi_cmd_desc hitachi_videomode_on_cmds[] = {
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(mcap_start), mcap_start}
 	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(set_interface_video), set_interface_video}
 	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(mcap_end), mcap_end}
 	,
-	{DTYPE_DCS_WRITE1, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_DCS_WRITE1, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(set_tear_on), set_tear_on}
 	,
 };
 
-static struct dsi_cmd_desc renesas_videomode_off_cmds[] = {
-	{DTYPE_DCS_WRITE, 1, 0, 0, RENESAS_NO_DELAY,
+static struct dsi_cmd_desc hitachi_videomode_off_cmds[] = {
+	{DTYPE_DCS_WRITE, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(set_tear_off), set_tear_off}
 	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(mcap_start), mcap_start}
 	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_CMD_DELAY_20,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_CMD_DELAY_20,
 	 sizeof(set_interface_cmd1), set_interface_cmd1}
 	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(set_interface_cmd2), set_interface_cmd2}
 	,
-	{DTYPE_GEN_WRITE2, 1, 0, 0, RENESAS_NO_DELAY,
+	{DTYPE_GEN_WRITE2, 1, 0, 0, HITACHI_NO_DELAY,
 	 sizeof(mcap_end), mcap_end}
 	,
 };
 
 static char manufacture_id[2] = { 0x04, 0x00 };	/* DTYPE_DCS_READ */
 
-static struct dsi_cmd_desc renesas_manufacture_id_cmd = {
+static struct dsi_cmd_desc hitachi_manufacture_id_cmd = {
 	DTYPE_DCS_READ, 1, 0, 1, 5, sizeof(manufacture_id), manufacture_id
 };
 
 static u32 manu_id;
 
-static void mipi_renesas_manufature_cb(u32 data)
+static void mipi_hitachi_manufature_cb(u32 data)
 {
 	manu_id = data;
 	pr_info("%s: manufature_id=%x\n", __func__, manu_id);
 }
 
-static uint32 mipi_renesas_manufacture_id(struct msm_fb_data_type *mfd)
+static uint32 mipi_hitachi_manufacture_id(struct msm_fb_data_type *mfd)
 {
 	struct dcs_cmd_req cmdreq;
-	cmdreq.cmds = &renesas_manufacture_id_cmd;
+	cmdreq.cmds = &hitachi_manufacture_id_cmd;
 	cmdreq.cmds_cnt = 1;
 	cmdreq.flags = CMD_REQ_RX | CMD_REQ_COMMIT;
 	cmdreq.rlen = 3;
-	cmdreq.cb = mipi_renesas_manufature_cb;
+	cmdreq.cb = mipi_hitachi_manufature_cb;
 	mipi_dsi_cmdlist_put(&cmdreq);
 
 	return manu_id;
@@ -482,7 +482,7 @@ static uint32 mipi_renesas_manufacture_id(struct msm_fb_data_type *mfd)
 extern int mipanel_id(void);
 extern void mipanel_set_id(int id);
 
-static int mipi_renesas_hitachi_on(struct platform_device *pdev)
+static int mipi_hitachi_lcd_on(struct platform_device *pdev)
 {
 	struct dcs_cmd_req cmdreq;
 	struct msm_fb_data_type *mfd;
@@ -507,26 +507,26 @@ static int mipi_renesas_hitachi_on(struct platform_device *pdev)
 #endif
 
 	if (mipi->mode == DSI_VIDEO_MODE) {
-		cmdreq.cmds = renesas_videomode_on_cmds;
-		cmdreq.cmds_cnt = ARRAY_SIZE(renesas_videomode_on_cmds);
+		cmdreq.cmds = hitachi_videomode_on_cmds;
+		cmdreq.cmds_cnt = ARRAY_SIZE(hitachi_videomode_on_cmds);
 	} else if (mipanel_id()) {
-		cmdreq.cmds = renesas_hitachi_on_cmds;
-		cmdreq.cmds_cnt = ARRAY_SIZE(renesas_hitachi_on_cmds);
+		cmdreq.cmds = hitachi_hitachi_on_cmds;
+		cmdreq.cmds_cnt = ARRAY_SIZE(hitachi_hitachi_on_cmds);
 	} else {
-		cmdreq.cmds = renesas_sharp_on_cmds;
-		cmdreq.cmds_cnt = ARRAY_SIZE(renesas_sharp_on_cmds);
+		cmdreq.cmds = hitachi_sharp_on_cmds;
+		cmdreq.cmds_cnt = ARRAY_SIZE(hitachi_sharp_on_cmds);
 	}
 	cmdreq.flags = CMD_REQ_COMMIT;
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 	mipi_dsi_cmdlist_put(&cmdreq);
 
-	mipi_renesas_manufacture_id(mfd);
+	mipi_hitachi_manufacture_id(mfd);
 
 	return 0;
 }
 
-static int mipi_renesas_hitachi_off(struct platform_device *pdev)
+static int mipi_hitachi_lcd_off(struct platform_device *pdev)
 {
 	struct dcs_cmd_req cmdreq;
 	struct msm_fb_data_type *mfd;
@@ -541,14 +541,14 @@ static int mipi_renesas_hitachi_off(struct platform_device *pdev)
 		return -EINVAL;
 
 	if (mipi->mode == DSI_VIDEO_MODE) {
-		cmdreq.cmds = renesas_videomode_off_cmds;
-		cmdreq.cmds_cnt = ARRAY_SIZE(renesas_videomode_off_cmds);
+		cmdreq.cmds = hitachi_videomode_off_cmds;
+		cmdreq.cmds_cnt = ARRAY_SIZE(hitachi_videomode_off_cmds);
 	} else if (mipanel_id()) {
-		cmdreq.cmds = renesas_hitachi_off_cmds;
-		cmdreq.cmds_cnt = ARRAY_SIZE(renesas_hitachi_off_cmds);
+		cmdreq.cmds = hitachi_hitachi_off_cmds;
+		cmdreq.cmds_cnt = ARRAY_SIZE(hitachi_hitachi_off_cmds);
 	} else {
-		cmdreq.cmds = renesas_sharp_off_cmds;
-		cmdreq.cmds_cnt = ARRAY_SIZE(renesas_sharp_off_cmds);
+		cmdreq.cmds = hitachi_sharp_off_cmds;
+		cmdreq.cmds_cnt = ARRAY_SIZE(hitachi_sharp_off_cmds);
 	}
 	cmdreq.flags = CMD_REQ_COMMIT;
 	cmdreq.rlen = 0;
@@ -562,10 +562,10 @@ static int mipi_renesas_hitachi_off(struct platform_device *pdev)
 	return 0;
 }
 
-static int __devinit mipi_renesas_lcd_probe(struct platform_device *pdev)
+static int mipi_hitachi_lcd_probe(struct platform_device *pdev)
 {
 	if (pdev->id == 0) {
-		mipi_renesas_pdata = pdev->dev.platform_data;
+		mipi_hitachi_pdata = pdev->dev.platform_data;
 		return 0;
 	}
 
@@ -574,7 +574,7 @@ static int __devinit mipi_renesas_lcd_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static void mipi_renesas_set_backlight(struct msm_fb_data_type *mfd)
+static void mipi_hitachi_set_backlight(struct msm_fb_data_type *mfd)
 {
 	int ret = -EPERM;
 	int bl_level;
@@ -586,29 +586,29 @@ static void mipi_renesas_set_backlight(struct msm_fb_data_type *mfd)
 	return;
 #endif
 
-	if (mipi_renesas_pdata && mipi_renesas_pdata->pmic_backlight)
-		ret = mipi_renesas_pdata->pmic_backlight(bl_level);
+	if (mipi_hitachi_pdata && mipi_hitachi_pdata->pmic_backlight)
+		ret = mipi_hitachi_pdata->pmic_backlight(bl_level);
 	else
 		pr_err("%s(): Backlight level set failed\n", __func__);
 }
 
 static struct platform_driver this_driver = {
-	.probe = mipi_renesas_lcd_probe,
+	.probe = mipi_hitachi_lcd_probe,
 	.driver = {
-		   .name = "mipi_renesas",
+		   .name = "mipi_hitachi",
 		   },
 };
 
-static struct msm_fb_panel_data renesas_hitachi_panel_data = {
-	.on = mipi_renesas_hitachi_on,
-	.off = mipi_renesas_hitachi_off,
-	.set_backlight = mipi_renesas_set_backlight,
+static struct msm_fb_panel_data hitachi_panel_data = {
+	.on = mipi_hitachi_lcd_on,
+	.off = mipi_hitachi_lcd_off,
+	.set_backlight = mipi_hitachi_set_backlight,
 };
 
 static int ch_used[3];
 
-int mipi_xiaomi_device_register(struct msm_panel_info *pinfo,
-				u32 channel, u32 panel)
+int mipi_hitachi_device_register(struct msm_panel_info *pinfo,
+				 u32 channel, u32 panel)
 {
 	struct platform_device *pdev = NULL;
 	int ret;
@@ -618,20 +618,14 @@ int mipi_xiaomi_device_register(struct msm_panel_info *pinfo,
 
 	ch_used[channel] = TRUE;
 
-	ret = mipi_renesas_lcd_init();
-	if (ret) {
-		pr_err("mipi_renesas_lcd_init() failed with ret %u\n", ret);
-		return ret;
-	}
-
-	pdev = platform_device_alloc("mipi_renesas", (panel << 8) | channel);
+	pdev = platform_device_alloc("mipi_hitachi", (panel << 8) | channel);
 	if (!pdev)
 		return -ENOMEM;
 
-	renesas_hitachi_panel_data.panel_info = *pinfo;
+	hitachi_panel_data.panel_info = *pinfo;
 
-	ret = platform_device_add_data(pdev, &renesas_hitachi_panel_data,
-				       sizeof(renesas_hitachi_panel_data));
+	ret = platform_device_add_data(pdev, &hitachi_panel_data,
+				       sizeof(hitachi_panel_data));
 	if (ret) {
 		pr_err("%s: platform_device_add_data failed!\n", __func__);
 		goto err_device_put;
@@ -649,10 +643,12 @@ err_device_put:
 	return ret;
 }
 
-static int mipi_renesas_lcd_init(void)
+static int __init mipi_hitachi_lcd_init(void)
 {
-	mipi_dsi_buf_alloc(&renesas_tx_buf, DSI_BUF_SIZE);
-	mipi_dsi_buf_alloc(&renesas_rx_buf, DSI_BUF_SIZE);
+	mipi_dsi_buf_alloc(&hitachi_tx_buf, DSI_BUF_SIZE);
+	mipi_dsi_buf_alloc(&hitachi_rx_buf, DSI_BUF_SIZE);
 
 	return platform_driver_register(&this_driver);
 }
+
+module_init(mipi_hitachi_lcd_init);

@@ -10,9 +10,9 @@
  * GNU General Public License for more details.
  */
 
-#ifndef MIPI_XIAOMI_H
-#define MIPI_XIAOMI_H
+#ifndef MIPI_HITACHI_H
+#define MIPI_HITACHI_H
 
-int mipi_xiaomi_device_register(struct msm_panel_info *pinfo,
-				u32 channel, u32 panel);
-#endif /* MIPI_XIAOMI_H */
+int mipi_hitachi_device_register(struct msm_panel_info *pinfo,
+				 u32 channel, u32 panel);
+#endif /* MIPI_HITACHI_H */

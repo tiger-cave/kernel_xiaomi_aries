@@ -12,7 +12,7 @@
 
 #include "msm_fb.h"
 #include "mipi_dsi.h"
-#include "mipi_xiaomi.h"
+#include "mipi_hitachi.h"
 
 #define USE_HW_VSYNC
 
@@ -109,7 +109,7 @@ static int __init mipi_cmd_hitachi_720p_pt_init(void)
 	pinfo.mipi.dsi_phy_db = &dsi_cmd_mode_phy_db;
 	pinfo.mipi.esc_byte_ratio = 4;
 
-	ret = mipi_xiaomi_device_register(&pinfo, MIPI_DSI_PRIM,
+	ret = mipi_hitachi_device_register(&pinfo, MIPI_DSI_PRIM,
 			MIPI_DSI_PANEL_720P_PT);
 	if (ret)
 		pr_err("%s: failed to register device!\n", __func__);
