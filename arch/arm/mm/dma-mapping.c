@@ -221,25 +221,11 @@ static struct page *__dma_alloc_buffer(struct device *dev, size_t size, gfp_t gf
  */
 static void __dma_free_buffer(struct page *page, size_t size)
 {
-#ifdef CONFIG_SPARSEMEM
-	unsigned long pfn_start = page_to_pfn(page);
-	unsigned long pfn_end = pfn_start + (size >> PAGE_SHIFT);
-#else
 	struct page *e = page + (size >> PAGE_SHIFT);
-#endif
 
-#ifdef CONFIG_SPARSEMEM
-	while (pfn_start < pfn_end) {
-#else
 	while (page < e) {
-#endif
 		__free_page(page);
 		page++;
-#ifdef CONFIG_SPARSEMEM
-		pfn_start++;
-		if (!(pfn_start % PAGES_PER_SECTION))
-			page = pfn_to_page(pfn_start);
-#endif
 	}
 }
 
@@ -467,9 +453,6 @@ __dma_alloc_remap(struct page *page, size_t size, gfp_t gfp, pgprot_t prot,
 			    gfp & ~(__GFP_DMA | __GFP_HIGHMEM), caller);
 	if (c) {
 		pte_t *pte;
-#ifdef CONFIG_SPARSEMEM
-		unsigned long pfn1 = page_to_pfn(page);
-#endif
 		int idx = CONSISTENT_PTE_INDEX(c->vm_start);
 		u32 off = CONSISTENT_OFFSET(c->vm_start) & (PTRS_PER_PTE-1);
 
@@ -481,11 +464,6 @@ __dma_alloc_remap(struct page *page, size_t size, gfp_t gfp, pgprot_t prot,
 
 			set_pte_ext(pte, mk_pte(page, prot), 0);
 			page++;
-#ifdef CONFIG_SPARSEMEM
-			pfn1++;
-			if (!(pfn1 % PAGES_PER_SECTION))
-				page = pfn_to_page(pfn1);
-#endif
 			pte++;
 			off++;
 			if (off >= PTRS_PER_PTE) {
@@ -878,33 +856,27 @@ static void dma_cache_maint_page(struct page *page, unsigned long offset,
 	size_t size, enum dma_data_direction dir,
 	void (*op)(const void *, size_t, int))
 {
+	unsigned long pfn;
+	size_t left = size;
+
+	pfn = page_to_pfn(page) + offset / PAGE_SIZE;
+	offset %= PAGE_SIZE;
+
 	/*
 	 * A single sg entry may refer to multiple physically contiguous
 	 * pages.  But we still need to process highmem pages individually.
 	 * If highmem is not configured then the bulk of this loop gets
 	 * optimized out.
 	 */
-	size_t left = size;
-#ifdef CONFIG_SPARSEMEM
-	unsigned long pfn1 = page_to_pfn(page);
-#endif
 	do {
 		size_t len = left;
 		void *vaddr;
 
+		page = pfn_to_page(pfn);
+
 		if (PageHighMem(page)) {
-			if (len + offset > PAGE_SIZE) {
-				if (offset >= PAGE_SIZE) {
-#ifdef CONFIG_SPARSEMEM
-					pfn1 += offset / PAGE_SIZE;
-					page = pfn_to_page(pfn1);
-#else
-					page += offset / PAGE_SIZE;
-#endif
-					offset %= PAGE_SIZE;
-				}
+			if (len + offset > PAGE_SIZE)
 				len = PAGE_SIZE - offset;
-			}
 
 			if (cache_is_vipt_nonaliasing()) {
 				vaddr = kmap_atomic(page);
@@ -922,12 +894,7 @@ static void dma_cache_maint_page(struct page *page, unsigned long offset,
 			op(vaddr, len, dir);
 		}
 		offset = 0;
-		page++;
-#ifdef CONFIG_SPARSEMEM
-		pfn1++;
-		if (!(pfn1 % PAGES_PER_SECTION))
-			page = pfn_to_page(pfn1);
-#endif
+		pfn++;
 		left -= len;
 	} while (left);
 }
